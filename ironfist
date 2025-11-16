@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>4-Player Tournament (38 players) — Quarter → Semi → Final</title>
+<style>
+  :root{--bg:#f5f7fb;--card:#fff;--muted:#666;--accent:#2b6cb0}
+  body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0; padding:20px; background:var(--bg); color:#111}
+  .wrap{max-width:1150px; margin:0 auto}
+  header{display:flex; align-items:center; gap:16px; margin-bottom:18px}
+  header h1{margin:0; font-size:20px}
+  .controls{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
+  button, select, input[type="number"]{padding:8px 10px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer}
+  button.primary{background:var(--accent); color:#fff; border-color:transparent}
+  .grid{display:grid; grid-template-columns: 1fr 420px; gap:18px}
+  .card{background:var(--card); padding:12px; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+  .players-list{max-height:520px; overflow:auto; padding:8px}
+  .player-row{display:flex; gap:8px; align-items:center; margin-bottom:6px}
+  .player-row input[type="text"]{flex:1; padding:8px; border-radius:6px; border:1px solid #ddd}
+  .small{font-size:13px; color:var(--muted)}
+  .matches{display:flex; flex-direction:column; gap:12px}
+  .match{display:grid; grid-template-columns: 1fr; gap:8px; padding:10px; border-radius:8px; border:1px dashed #e0e0e0; background:#fafafa}
+  .match h4{margin:0 0 6px 0; font-size:14px}
+  .mp{display:flex; gap:8px; align-items:center}
+  .mp .name{flex:1}
+  .posBtns{display:flex; gap:6px}
+  .posBtns button{padding:6px 8px; font-size:13px}
+  .roundTitle{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+  .footer{margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .notice{font-size:13px; color:#444}
+  pre{white-space:pre-wrap; font-size:13px}
+  @media(max-width:980px){ .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>4-Player Tournament — up to 38 players</h1>
+    <div class="small">Match scoring: 1st +2, 2nd +1, 3rd -1, 4th -2</div>
+  </header>
+
+  <div class="grid">
+    <!-- Left: Controls & players -->
+    <div class="card">
+      <div style="display:flex; gap:8px; align-items:center; justify-content:space-between">
+        <div><strong>Players (max 38)</strong></div>
+        <div class="small">Players: <span id="count">0</span>/38</div>
+      </div>
+
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <input id="newName" type="text" placeholder="New player name" />
+        <button onclick="addPlayerFromInput()">Add</button>
+        <button onclick="autoFill()">Auto Fill</button>
+      </div>
+
+      <div class="players-list" id="playersList" style="margin-top:10px"></div>
+
+      <div class="footer">
+        <button onclick="resetAll()">Reset All</button>
+        <button onclick="saveState()">Save (local)</button>
+        <button onclick="loadState()">Load (local)</button>
+        <button onclick="exportJSON()">Export JSON</button>
+        <button onclick="importPrompt()">Import JSON</button>
+        <div class="small" style="margin-left:auto">Changes saved to browser storage only.</div>
+      </div>
+    </div>
+
+    <!-- Right: Brackets / Matches -->
+    <div class="card">
+      <div class="roundTitle">
+        <strong id="roundLabel">Round: Initial</strong>
+        <div class="controls">
+          <button onclick="renderAll()">Refresh</button>
+          <button class="primary" onclick="buildInitialMatches()">Build Initial Matches</button>
+          <button onclick="promoteToQuarter()">Promote to Quarterfinals (top 16)</button>
+        </div>
+      </div>
+
+      <div id="bracketsArea" class="matches"></div>
+
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+        <button onclick="buildQuarterMatches()">Show Quarterfinal Matches</button>
+        <button onclick="advanceQuarterToSemi()">Advance Quarter → Semifinal</button>
+        <button onclick="advanceSemiToFinal()">Advance Semi → Final</button>
+        <button onclick="resetRounds()">Reset Rounds</button>
+      </div>
+
+      <div style="margin-top:12px" class="notice">
+        <strong>Flow:</strong> Initial → (Promote top16) → Quarterfinals (16) → Advance (top2 each match) → Semifinals (8) → Advance (top2 each) → Final (4).
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Tournament script
+ - Up to 38 players
+ - 4 players per match
+ - Scoring when you set positions: first +2, second +1, third -1, fourth -2
+ - Promotion logic implemented per description
+*/
+
+const MAX_PLAYERS = 38;
+let players = []; // {id, name, points, round}
+let matches = {}; // keyed by round name -> array of matches; each match: {id, players:[ids], positions: {playerId: pos}}
+let stateKey = "fourplayer_tournament_v1";
+
+function uid(prefix='id'){ return prefix + Math.random().toString(36).slice(2,9); }
+
+function saveState(){
+  localStorage.setItem(stateKey, JSON.stringify({players, matches}));
+  alert("Saved locally.");
+}
+
+function loadState(){
+  const s = localStorage.getItem(stateKey);
+  if(!s){ alert("No saved state found."); return; }
+  const obj = JSON.parse(s);
+  players = obj.players || [];
+  matches = obj.matches || {};
+  renderAll();
+  alert("Loaded.");
+}
+
+function resetAll(){
+  if(!confirm("Reset everything?")) return;
+  players = [];
+  matches = {};
+  saveToLocalAndRender(false);
+}
+
+function saveToLocalAndRender(save=true){
+  if(save) localStorage.setItem(stateKey, JSON.stringify({players, matches}));
+  renderAll();
+}
+
+function exportJSON(){
+  const data = JSON.stringify({players, matches}, null, 2);
+  const blob = new Blob([data], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "tournament_export.json"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importPrompt(){
+  const txt = prompt("Paste tournament JSON here");
+  if(!txt) return;
+  try{
+    const obj = JSON.parse(txt);
+    players = obj.players || [];
+    matches = obj.matches || {};
+    saveToLocalAndRender();
+  }catch(e){ alert("Invalid JSON"); }
+}
+
+function addPlayerFromInput(){
+  const name = document.getElementById("newName").value.trim();
+  if(!name) { alert("Enter a name"); return; }
+  addPlayer(name);
+  document.getElementById("newName").value = "";
+}
+
+function addPlayer(name){
+  if(players.length >= MAX_PLAYERS){ alert("Max players reached"); return; }
+  players.push({id: uid('p'), name: name, points: 0, round: "initial"});
+  renderAll();
+}
+
+function autoFill(){
+  const toAdd = Math.min(MAX_PLAYERS - players.length, MAX_PLAYERS);
+  for(let i=players.length+1;i<=MAX_PLAYERS;i++){
+    players.push({id: uid('p'), name: "Player " + i, points: 0, round: "initial"});
+  }
+  renderAll();
+}
+
+function renderAll(){
+  document.getElementById("count").textContent = players.length;
+  renderPlayersList();
+  renderBrackets();
+}
+
+function renderPlayersList(){
+  const box = document.getElementById("playersList");
+  box.innerHTML = "";
+  players.forEach((p, idx) => {
+    const div = document.createElement("div");
+    div.className = "player-row";
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.value = p.name;
+    inp.onchange = (e)=> { p.name = e.target.value; saveToLocalAndRender(); };
+    const pts = document.createElement("div"); pts.style.minWidth="72px"; pts.style.textAlign="center";
+    pts.innerHTML = `<div style="font-weight:600">${p.points}</div><div class="small">${p.round}</div>`;
+    const del = document.createElement("button"); del.textContent="X"; del.onclick = ()=> { if(confirm("Remove?")){ players.splice(idx,1); saveToLocalAndRender(); } };
+    div.appendChild(inp); div.appendChild(pts); div.appendChild(del);
+    box.appendChild(div);
+  });
+}
+
+function buildInitialMatches(){
+  // Clear previous rounds except saved players
+  matches = matches || {};
+  matches.initial = [];
+  // group sequentially into up to 4 players per match
+  const arr = players.map(p=>p.id);
+  let i = 0, matchNo = 1;
+  while(i < arr.length){
+    const group = arr.slice(i, i+4);
+    matches.initial.push({id: uid('m'), name: "Initial #" + matchNo, players: group.slice(), positions: {}});
+    i += 4; matchNo++;
+  }
+  // ensure rounds default set
+  players.forEach(p=> p.round = "initial");
+  saveToLocalAndRender();
+}
+
+function renderBrackets(){
+  const area = document.getElementById("bracketsArea");
+  area.innerHTML = "";
+  const roundOrder = ["initial","quarter","semi","final"];
+  const roundLabel = document.getElementById("roundLabel");
+  roundLabel.textContent = "Round: Initial / Quarter / Semifinal / Final";
+
+  roundOrder.forEach(rn=>{
+    const card = document.createElement("div");
+    card.className = "match";
+    const title = document.createElement("h4");
+    title.textContent = rn === "initial" ? "Initial Matches" : rn === "quarter" ? "Quarterfinals (16 → 8)" : rn === "semi" ? "Semifinals (8 → 4)" : "Final (4)";
+    card.appendChild(title);
+
+    const matchList = document.createElement("div");
+    matchList.style.display="grid"; matchList.style.gap="10px";
+
+    const rmatches = (matches && matches[rn]) ? matches[rn] : [];
+    if(rmatches.length === 0){
+      const note = document.createElement("div");
+      note.className = "small";
+      note.textContent = "No matches built for this round.";
+      matchList.appendChild(note);
+    } else {
+      rmatches.forEach(m=>{
+        const mdiv = document.createElement("div");
+        mdiv.style.padding="8px"; mdiv.style.borderRadius="8px"; mdiv.style.background="#fff"; mdiv.style.border="1px solid #eee";
+        const h = document.createElement("div"); h.style.display="flex"; h.style.justifyContent="space-between";
+        const hleft = document.createElement("div"); hleft.textContent = m.name;
+        const hright = document.createElement("div"); hright.className = "small"; hright.textContent = `Players: ${m.players.length}`;
+        h.appendChild(hleft); h.appendChild(hright);
+        mdiv.appendChild(h);
+
+        m.players.forEach(pid=>{
+          const pl = players.find(x=>x.id===pid) || {id:pid,name:"(missing)",points:0};
+          const row = document.createElement("div"); row.className="mp"; row.style.marginTop="6px";
+          const name = document.createElement("div"); name.className="name"; name.textContent = pl.name;
+          const pts = document.createElement("div"); pts.style.minWidth="56px"; pts.style.textAlign="center"; pts.textContent = pl.points;
+          const posBtns = document.createElement("div"); posBtns.className="posBtns";
+          const b1 = document.createElement("button"); b1.textContent="1st(+2)"; b1.onclick = ()=> setPosition(rn,m.id,pid,1);
+          const b2 = document.createElement("button"); b2.textContent="2nd(+1)"; b2.onclick = ()=> setPosition(rn,m.id,pid,2);
+          const b3 = document.createElement("button"); b3.textContent="3rd(-1)"; b3.onclick = ()=> setPosition(rn,m.id,pid,3);
+          const b4 = document.createElement("button"); b4.textContent="4th(-2)"; b4.onclick = ()=> setPosition(rn,m.id,pid,4);
+          posBtns.appendChild(b1); posBtns.appendChild(b2); posBtns.appendChild(b3); posBtns.appendChild(b4);
+
+          // highlight if position set
+          if(m.positions && m.positions[pid]){
+            const pos = m.positions[pid];
+            row.style.background = "#f0f8ff";
+            row.style.borderRadius = "6px"; row.style.padding = "6px";
+            const badge = document.createElement("div"); badge.textContent = `Pos: ${pos}`; badge.className="small"; badge.style.marginLeft="8px";
+            row.appendChild(badge);
+          }
+
+          row.appendChild(name);
+          row.appendChild(pts);
+          row.appendChild(posBtns);
+          mdiv.appendChild(row);
+        });
+
+        const resetMatch = document.createElement("div");
+        resetMatch.style.marginTop="8px";
+        const rmBtn = document.createElement("button"); rmBtn.textContent="Reset Match Results"; rmBtn.onclick = ()=> { if(confirm("Reset this match results?")){ m.positions = {}; saveToLocalAndRender(); } };
+        resetMatch.appendChild(rmBtn);
+        mdiv.appendChild(resetMatch);
+
+        matchList.appendChild(mdiv);
+      });
+    }
+
+    card.appendChild(matchList);
+    area.appendChild(card);
+  });
+}
+
+function setPosition(round, matchId, playerId, pos){
+  const m = (matches[round] || []).find(x=>x.id===matchId);
+  if(!m) return;
+  // ensure no duplicate positions: remove same pos assigned to other player
+  for(const pid in m.positions){
+    if(m.positions[pid] === pos) delete m.positions[pid];
+  }
+  m.positions[playerId] = pos;
+  // apply points change for this player (we recompute from positions every time to avoid stacking)
+  applyPointsForMatch(m);
+  saveToLocalAndRender();
+}
+
+function applyPointsForMatch(match){
+  // first, remove previous points allocated from this match by scanning all players and recomputing using match.positions.
+  // Simpler: we'll recompute points globally from scratch by aggregating across all matches' positions.
+  // Reset all players points to 0
+  players.forEach(p=> p.points = 0);
+
+  // For each round and match, apply points per position mapping:
+  const posPoints = {1:2, 2:1, 3:-1, 4:-2};
+  Object.keys(matches || {}).forEach(rn=>{
+    (matches[rn]||[]).forEach(mt=>{
+      for(const pid in mt.positions){
+        const pos = mt.positions[pid];
+        const p = players.find(x=>x.id===pid);
+        if(p) p.points += (posPoints[pos] || 0);
+      }
+    });
+  });
+}
+
+function promoteToQuarter(){
+  // pick top 16 players by points (tie by name)
+  if(players.length === 0){ alert("No players"); return; }
+  // ensure initial matches exist
+  if(!matches.initial) buildInitialMatches();
+
+  // compute current points from matches
+  applyPointsForMatch({});
+
+  // select top 16
+  const sorted = players.slice().sort((a,b)=>{
+    if(b.points !== a.points) return b.points - a.points;
+    return a.name.localeCompare(b.name);
+  });
+  const top16 = sorted.slice(0, Math.min(16, sorted.length));
+  // set their round to quarter
+  top16.forEach(p=> p.round = "quarter");
+  // create quarter matches grouped 4 each
+  matches.quarter = [];
+  let ids = top16.map(x=>x.id);
+  let i=0, no=1;
+  while(i<ids.length){
+    matches.quarter.push({id: uid('q'), name:"Quarter #" + no, players: ids.slice(i,i+4), positions:{}});
+    i+=4; no++;
+  }
+  saveToLocalAndRender();
+  alert("Promoted top " + top16.length + " to Quarterfinals.");
+}
+
+function buildQuarterMatches(){ if(!matches.quarter){ alert("No quarter matches — promote to quarter first."); return; } renderAll(); }
+
+function advanceQuarterToSemi(){
+  if(!matches.quarter || matches.quarter.length===0){ alert("No quarter matches built."); return; }
+  // from each quarter match pick top 2 by positions if set; if no positions set, fallback to players' overall points
+  const posPoints = {1:2,2:1,3:-1,4:-2};
+  const adv = [];
+  matches.quarter.forEach(m=>{
+    // sort players in match by their assigned pos if any, else by global points
+    const arr = m.players.slice();
+    arr.sort((aId,bId)=>{
+      const aPos = m.positions && m.positions[aId] ? m.positions[aId] : 99;
+      const bPos = m.positions && m.positions[bId] ? m.positions[bId] : 99;
+      if(aPos !== bPos) return aPos - bPos;
+      const a = players.find(p=>p.id===aId), b = players.find(p=>p.id===bId);
+      if(a && b && a.points !== b.points) return b.points - a.points;
+      return (a && b) ? a.name.localeCompare(b.name) : 0;
+    });
+    // pick top2 or all if fewer
+    for(let k=0;k<Math.min(2,arr.length);k++) adv.push(arr[k]);
+  });
+  // set round and build semi matches (group 4)
+  players.forEach(p=>{ if(adv.includes(p.id)) p.round = "semi"; });
+  matches.semi = [];
+  let i=0,no=1;
+  while(i<adv.length){
+    matches.semi.push({id: uid('s'), name: "Semi #" + no, players: adv.slice(i,i+4), positions:{}});
+    i+=4; no++;
+  }
+  saveToLocalAndRender();
+  alert("Advanced " + adv.length + " players to Semifinals.");
+}
+
+function advanceSemiToFinal(){
+  if(!matches.semi || matches.semi.length===0){ alert("No semifinal matches built."); return; }
+  const adv = [];
+  matches.semi.forEach(m=>{
+    const arr = m.players.slice();
+    arr.sort((aId,bId)=>{
+      const aPos = m.positions && m.positions[aId] ? m.positions[aId] : 99;
+      const bPos = m.positions && m.positions[bId] ? m.positions[bId] : 99;
+      if(aPos !== bPos) return aPos - bPos;
+      const a = players.find(p=>p.id===aId), b = players.find(p=>p.id===bId);
+      if(a && b && a.points !== b.points) return b.points - a.points;
+      return (a && b) ? a.name.localeCompare(b.name) : 0;
+    });
+    for(let k=0;k<Math.min(2,arr.length);k++) adv.push(arr[k]);
+  });
+  // final should be 4 players; if adv >4, take top 4 by overall points
+  let finalIds = adv;
+  if(finalIds.length > 4){
+    finalIds = finalIds.slice().sort((aId,bId)=>{
+      const a = players.find(p=>p.id===aId), b = players.find(p=>p.id===bId);
+      if(a.points !== b.points) return b.points - a.points;
+      return a.name.localeCompare(b.name);
+    }).slice(0,4);
+  }
+  players.forEach(p=>{ if(finalIds.includes(p.id)) p.round = "final"; });
+  matches.final = [{id: uid('f'), name:"Final", players: finalIds.slice(), positions:{}}];
+  saveToLocalAndRender();
+  alert("Final set with " + finalIds.length + " players.");
+}
+
+function buildQuarterFromExisting(){ buildQuarterMatches(); }
+
+function resetRounds(){
+  if(!confirm("Clear all rounds and match results? Players will remain.")) return;
+  matches = {};
+  players.forEach(p=> { p.round = "initial"; p.points = 0; });
+  saveToLocalAndRender();
+}
+
+// init
+(function(){
+  const s = localStorage.getItem(stateKey);
+  if(s){
+    try{ const obj = JSON.parse(s); players = obj.players || []; matches = obj.matches || {}; }catch(e){}
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>

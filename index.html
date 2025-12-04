@@ -114,15 +114,22 @@ function renderPlayers() {
 
 function generateMatches() {
   matches = [];
+  const usedPairs = new Set();
   players.forEach(p => {
-    const opponents = [...players].filter(x => x.name !== p.name);
-    for (let i = 0; i < totalMatches; i++) {
-      const o = opponents[Math.floor(Math.random() * opponents.length)];
-      matches.push({ p1: p.name, p2: o.name, winner: null });
+    const opponents = shuffle([...players].filter(x => x.name !== p.name));
+    let count = 0;
+    for (let o of opponents) {
+      const pairKey = [p.name, o.name].sort().join("-");
+      if (!usedPairs.has(pairKey)) {
+        matches.push({ p1: p.name, p2: o.name, winner: null });
+        usedPairs.add(pairKey);
+        count++;
+        if (count === 3) break; // max 3 matches per player
+      }
     }
   });
-  renderMatches();
 }
+
 
 function renderMatches() {
   const div = document.getElementById("leagueMatches");

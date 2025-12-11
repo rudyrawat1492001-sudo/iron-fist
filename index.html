@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Iron Fist Tournament</title>
+
 <style>
 body {
   font-family: 'Poppins', sans-serif;
@@ -43,6 +44,25 @@ button {
   background: #ff3d00;
   color: white;
 }
+.share-btn {
+  background: #2962ff;
+  color: white;
+}
+
+.completed-match {
+  background: rgba(0,255,0,0.15);
+  border: 1px solid #00ff37;
+  box-shadow: 0 0 10px #00ff3744;
+  border-radius: 6px;
+  padding: 5px;
+}
+.tick {
+  color: #00ff37;
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: 6px;
+}
+
 table {
   margin: 25px auto;
   border-collapse: collapse;
@@ -82,6 +102,7 @@ tr:nth-child(even) {
 <button onclick="saveData()" class="save-btn">💾 Save Progress</button>
 <button onclick="loadData()" class="save-btn">📂 Load Saved</button>
 <button onclick="resetAll()" class="reset-btn">🔄 Reset All</button>
+<button onclick="getShareLink()" class="share-btn">🔗 Share Progress</button>
 
 <h2 class="round-title">League Stage (3 Matches Each)</h2>
 <div id="matches"></div>
@@ -98,6 +119,7 @@ tr:nth-child(even) {
 <div id="knockout"></div>
 
 <script>
+/* PLAYERS */
 const players = [
 "Naruto","Kakashi","Sai","Sakura","Neji","Rocklee","Tenten","Might Guy","Shikamaru",
 "Ino","Choji","Asuma","Kiba","Shino","Hinata","Kurenai","Sasuke","Suigetsu","Karin","Jugo",
@@ -113,6 +135,7 @@ function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
+/* GENERATE MATCHES */
 function generateMatches() {
   const usedPairs = new Set();
   for (let i = 0; i < players.length; i++) {
@@ -132,84 +155,26 @@ function generateMatches() {
   }
 }
 
+/* RENDER MATCHES */
 function renderMatches() {
   const div = document.getElementById("matches");
   div.innerHTML = "";
   matches.forEach((m, i) => {
+
+    const isDone = m.winner ? "completed-match" : "";
+
+    const tick = m.winner ? `<span class='tick'>✔️</span>` : "";
+
+    const disabled = m.winner ? "disabled" : "";
+
     const box = document.createElement("div");
+    box.className = isDone;
     box.innerHTML = `
-      <p>🔥 ${m.p1} vs ${m.p2}</p>
-      <button class='win-btn' onclick='setWinner(${i}, 1)'>${m.p1} Win</button>
-      <button class='lose-btn' onclick='setWinner(${i}, 2)'>${m.p2} Win</button>
+      <p>🔥 ${m.p1} vs ${m.p2} ${tick}</p>
+
+      <button class='win-btn' ${disabled} onclick='setWinner(${i}, 1)'>${m.p1} Win</button>
+      <button class='lose-btn' ${disabled} onclick='setWinner(${i}, 2)'>${m.p2} Win</button>
+
       <hr style='width:60%;opacity:0.2;'>
     `;
     div.appendChild(box);
-  });
-}
-
-function setWinner(index, winner) {
-  const match = matches[index];
-  if (match.winner) return;
-  const p1 = match.p1, p2 = match.p2;
-  if (winner === 1) {
-    match.winner = p1;
-    scores[p1].wins++; scores[p1].points += 3;
-    scores[p2].losses++;
-  } else {
-    match.winner = p2;
-    scores[p2].wins++; scores[p2].points += 3;
-    scores[p1].losses++;
-  }
-  renderLeaderboard();
-  saveData();
-}
-
-function renderLeaderboard() {
-  const tbody = document.querySelector("#leaderboard tbody");
-  const arr = Object.keys(scores).map(p => ({
-    player: p,
-    ...scores[p]
-  }));
-  arr.sort((a,b) => b.points - a.points || b.wins - a.wins);
-  tbody.innerHTML = "";
-  arr.forEach((p,i)=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${i+1}</td><td>${p.player}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.points}</td>`;
-    tbody.appendChild(tr);
-  });
-  renderKnockout(arr.slice(0,16));
-}
-
-function renderKnockout(top16) {
-  const div = document.getElementById("knockout");
-  if (!top16.length) return;
-  let html = "<h3>Round of 16</h3>";
-  for (let i = 0; i < 8; i++) html += `<p>${top16[i].player} vs ${top16[15 - i].player}</p>`;
-  html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
-  html += "<h3>Semifinals</h3><p>Winners advance ⚡</p>";
-  html += "<h3>Final</h3><p>🏆 Champion: TBD <span class='trophy'>🏆</span></p>";
-  div.innerHTML = html;
-}
-
-function saveData() {
-  localStorage.setItem("ironFistData", JSON.stringify({ matches, scores }));
-  alert("Progress saved ✅");
-}
-function loadData() {
-  const data = JSON.parse(localStorage.getItem("ironFistData"));
-  if (data) { matches = data.matches; scores = data.scores; renderMatches(); renderLeaderboard(); }
-}
-function resetAll() {
-  if (!confirm("Reset all data?")) return;
-  localStorage.removeItem("ironFistData");
-  matches=[]; scores={};
-  generateMatches(); renderMatches(); renderLeaderboard();
-}
-
-generateMatches();
-renderMatches();
-renderLeaderboard();
-</script>
-
-</body>
-</html>

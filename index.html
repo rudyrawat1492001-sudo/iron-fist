@@ -178,3 +178,113 @@ function renderMatches() {
       <hr style='width:60%;opacity:0.2;'>
     `;
     div.appendChild(box);
+  });
+}
+
+/* SET WINNER */
+function setWinner(index, winner) {
+  const match = matches[index];
+  if (match.winner) return;
+
+  const p1 = match.p1, p2 = match.p2;
+
+  if (winner === 1) {
+    match.winner = p1;
+    scores[p1].wins++; scores[p1].points += 3;
+    scores[p2].losses++;
+  } else {
+    match.winner = p2;
+    scores[p2].wins++; scores[p2].points += 3;
+    scores[p1].losses++;
+  }
+
+  renderMatches();
+  renderLeaderboard();
+  saveData();
+}
+
+/* LEADERBOARD */
+function renderLeaderboard() {
+  const tbody = document.querySelector("#leaderboard tbody");
+  const arr = Object.keys(scores).map(p => ({
+    player: p,
+    ...scores[p]
+  }));
+  arr.sort((a,b) => b.points - a.points || b.wins - a.wins);
+  tbody.innerHTML = "";
+  arr.forEach((p,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${i+1}</td><td>${p.player}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.points}</td>`;
+    tbody.appendChild(tr);
+  });
+  renderKnockout(arr.slice(0,16));
+}
+
+/* KNOCKOUT */
+function renderKnockout(top16) {
+  const div = document.getElementById("knockout");
+  if (!top16.length) return;
+  let html = "<h3>Round of 16</h3>";
+  for (let i = 0; i < 8; i++) html += `<p>${top16[i].player} vs ${top16[15 - i].player}</p>`;
+  html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
+  html += "<h3>Semifinals</h3><p>Winners advance ⚡</p>";
+  html += "<h3>Final</h3><p>🏆 Champion: TBD <span class='trophy'>🏆</span></p>";
+  div.innerHTML = html;
+}
+
+/* SAVE + LOAD */
+function saveData() {
+  localStorage.setItem("ironFistData", JSON.stringify({ matches, scores }));
+}
+function loadData() {
+  const data = JSON.parse(localStorage.getItem("ironFistData"));
+  if (data) { matches = data.matches; scores = data.scores; renderMatches(); renderLeaderboard(); }
+}
+function resetAll() {
+  if (!confirm("Reset all data?")) return;
+  localStorage.removeItem("ironFistData");
+  matches = []; scores = {};
+  generateMatches(); renderMatches(); renderLeaderboard();
+}
+
+/* SHAREABLE URL */
+function getShareLink() {
+  const encoded = btoa(JSON.stringify({ matches, scores }));
+  const url = window.location.href.split("?")[0] + "?data=" + encoded;
+
+  navigator.clipboard.writeText(url);
+  alert("Share Link Copied! 📎");
+}
+
+function loadFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const d = params.get("data");
+  if (!d) return;
+
+  try {
+    const parsed = JSON.parse(atob(d));
+    matches = parsed.matches;
+    scores = parsed.scores;
+
+    localStorage.setItem("ironFistData", JSON.stringify(parsed));
+
+    renderMatches();
+    renderLeaderboard();
+
+    alert("Progress Loaded from Shared Link!");
+  } catch (e) {
+    alert("Invalid Link!");
+  }
+}
+
+/* INIT */
+loadFromURL();
+generateMatches();
+renderMatches();
+renderLeaderboard();
+loadData();
+
+</script>
+
+</body>
+</html>

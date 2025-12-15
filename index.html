@@ -221,13 +221,14 @@ renderKnockout(arr.slice(0,22));
 }
 
 /* KNOCKOUT */
-function renderKnockout(top16) {
+function renderKnockout(top22) {
   const div = document.getElementById("knockout");
   if (!top22.length) return;
+  
+let html = "<h3>Round of 22</h3>";
+for (let i = 0; i < 11; i++)
+  html += `<p>${top22[i].player} vs ${top22[21 - i].player}</p>`;
 
-  let html = "<h3>Round of 22</h3>";
-  for (let i = 0; i < 11; i++)
-    html += `<p>${top22[i].player} vs ${top22[21 - i].player}</p>`;
 
  html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
   html += "<h3>Semifinals</h3><p>Winners advance ⚡</p>";

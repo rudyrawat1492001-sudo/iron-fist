@@ -217,25 +217,24 @@ function renderLeaderboard() {
     `;
   });
 
-  renderKnockout(arr.slice(0,16));
+renderKnockout(arr.slice(0,22));
 }
 
 /* KNOCKOUT */
 function renderKnockout(top16) {
   const div = document.getElementById("knockout");
-  if (!top16.length) return;
+  if (!top22.length) return;
 
-  let html = "<h3>Round of 16</h3>";
-  for (let i = 0; i < 8; i++)
-    html += `<p>${top16[i].player} vs ${top16[15 - i].player}</p>`;
+  let html = "<h3>Round of 22</h3>";
+  for (let i = 0; i < 11; i++)
+    html += `<p>${top22[i].player} vs ${top22[21 - i].player}</p>`;
 
-  html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
+ html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
   html += "<h3>Semifinals</h3><p>Winners advance ⚡</p>";
   html += "<h3>Final</h3><p>🏆 Champion: TBD <span class='trophy'>🏆</span></p>";
 
   div.innerHTML = html;
 }
-
 /* SAVE LOAD */
 /* Local */
 function saveData() {

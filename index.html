@@ -261,21 +261,53 @@
     }
 
     /* KNOCKOUT */
-    function renderKnockout(top22) {
+    let knockoutData = JSON.parse(localStorage.getItem("knockoutData")) || {};
+
+    function renderKnockout(top32) {
       const div = document.getElementById("knockout");
-      if (!top22.length) return;
+      if (!top32.length) return;
 
-      let html = "<h3>Round of 22</h3>";
+      let html = "<h3>Round of 32</h3>";
 
-      for (let i = 0; i < 11; i++) {
-        html += `<p>${top22[i].player} vs ${top22[21 - i].player}</p>`;
+      for (let i = 0; i < 16; i++) {
+        const a = top32[i].player;
+        const b = top32[31 - i].player;
+        const key = `R32-${a}-${b}`;
+        const winner = knockoutData[key];
+
+        html += `
+          <p class="${winner ? 'completed-match' : ''}">
+            ${a} vs ${b}
+            ${winner ? "<span class='tick'>✔️</span>" : ""}
+            <br>
+            <button onclick="setKO('${key}','${a}')" ${winner ? 'disabled' : ''}>${a} Win</button>
+            <button onclick="setKO('${key}','${b}')" ${winner ? 'disabled' : ''}>${b} Win</button>
+          </p>
+        `;
       }
 
-      html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
-      html += "<h3>Semifinals</h3><p>Winners advance ⚡</p>";
-      html += "<h3>Final</h3><p>🏆 Champion: TBD <span class='trophy'>🏆</span></p>";
+      html += "<h3>Round of 16 → Quarterfinals → Semifinals → Final</h3>";
+      html += "<p>Auto progression based on winners</p>";
+
+      const champ = knockoutData['CHAMPION'];
+      if (champ) {
+        html += `<h2>🏆 Champion: ${champ} <span class='trophy'>🏆</span></h2>`;
+      }
 
       div.innerHTML = html;
+      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
+    }
+
+    function setKO(key, winner) {
+      knockoutData[key] = winner;
+
+      const wins = Object.values(knockoutData).filter(v => v === winner).length;
+      if (wins >= 5) {
+        knockoutData['CHAMPION'] = winner;
+      }
+
+      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
+      renderLeaderboard();
     }
 
     /* SAVE LOAD */

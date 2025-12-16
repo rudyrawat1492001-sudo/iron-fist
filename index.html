@@ -1,89 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Iron Fist Tournament</title>
-
-<style>
-body {
-  font-family: 'Poppins', sans-serif;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-  color: #fdd835;
-  text-align: center;
-}
-h1 {
-  color: red;
-  text-shadow: 0 0 15px red;
-}
-button {
-  cursor: pointer;
-  padding: 5px 12px;
-  border: none;
-  border-radius: 6px;
-  margin: 3px;
-  font-weight: 600;
-}
-.win-btn { background: red; color: #fff; }
-.reset-btn { background: #ff3d00; color: #fff; }
-.completed-match {
-  background: rgba(0,255,0,0.15);
-  border: 1px solid #00ff37;
-  border-radius: 6px;
-  padding: 5px;
-}
-.tick { color: #00ff37; font-size: 18px; margin-left: 6px; }
-table {
-  margin: 25px auto;
-  border-collapse: collapse;
-  width: 80%;
-}
-th, td { border: 1px solid #fdd83566; padding: 8px; }
-th { background: #222; }
-.round-title { font-size: 22px; margin-top: 40px; }
-</style>
-</head>
-
-<body>
-
-<h1>Iron Fist Tournament</h1>
-<button onclick="resetAll()" class="reset-btn">🔄 Reset All</button>
-
-<h2 class="round-title">League Stage</h2>
-<div id="league"></div>
-
-<h2 class="round-title">Leaderboard (Top 32)</h2>
-<table>
-<thead>
-<tr><th>Rank</th><th>Player</th><th>Points</th></tr>
-</thead>
-<tbody id="leaderboard"></tbody>
-</table>
-
-<h2 class="round-title">Knockout Rounds</h2>
-<div id="knockout"></div>
-
 <script>
 const STORE = 'ironFist_FINAL';
 
-const players =const players=["Kakuzu","Minato","Kabuto","Orochimaru","Naruto","Kakashi","Rocklee","Sasuke","Gaara","Kankuro",
-                              "Sakura","Might Guy","Choji","Hinata","Hidan","Chiyo","Tsunade","Small Kakashi","Tenten","Kurenai",
-                              "Jugo","Sasori","Itachi","Kisame","Pain","Temari","Neji","Shikamaru",
-                              "Ino","Kiba","Suigetsu","Tobi","Shizune","Asuma","Shino","Deidara","Konan","Sai",
-                              "Karin","Yamato","Jiraiya","Small Obito","Hashirama"];
+const players=["Kakuzu","Minato","Kabuto","Orochimaru","Naruto","Kakashi","Rocklee","Sasuke","Gaara","Kankuro","Sakura","Might Guy","Choji","Hinata","Hidan","Chiyo","Tsunade","Small Kakashi","Tenten","Kurenai","Jugo","Sasori","Itachi","Kisame","Pain","Temari","Neji","Shikamaru","Ino","Kiba","Suigetsu","Tobi","Shizune","Asuma","Shino","Deidara","Konan","Sai","Karin","Yamato","Jiraiya","Small Obito","Hashirama"];
 
-
-let state = {
-  league: [],
-  points: {},
-  ko: { r32:[], r16:[], qf:[], sf:[], final:[], champion:null }
+let state={
+  league:[],
+  points:{},
+  ko:{ r32:[], r16:[], qf:[], sf:[], final:[], champion:null }
 };
 
 // ---------- SAVE / LOAD ----------
-function save(){ localStorage.setItem(STORE, JSON.stringify(state)); }
+function save(){ localStorage.setItem(STORE,JSON.stringify(state)); }
 function load(){
-  const d = localStorage.getItem(STORE);
-  if(d){ state = JSON.parse(d); return true; }
+  const d=localStorage.getItem(STORE);
+  if(d){ state=JSON.parse(d); return true; }
   return false;
 }
 
@@ -101,23 +31,21 @@ if(!load()) init();
 
 // ---------- LEAGUE ----------
 function renderLeague(){
-  const d = document.getElementById('league');
-  d.innerHTML='';
+  league.innerHTML='';
   state.league.forEach((m,i)=>{
-    d.innerHTML += `
+    league.innerHTML+=`
     <div class="${m.w?'completed-match':''}">
       ${m.a} vs ${m.b}
-      ${!m.w ? `
+      ${m.w?`<span class="tick">✔</span>`:`
       <button class="win-btn" onclick="winLeague(${i},'a')">${m.a}</button>
-      <button class="win-btn" onclick="winLeague(${i},'b')">${m.b}</button>
-      ` : `<span class="tick">✔</span>`}
+      <button class="win-btn" onclick="winLeague(${i},'b')">${m.b}</button>`}
     </div>`;
   });
 }
 
 function winLeague(i,s){
   if(state.league[i].w) return;
-  const w = s==='a'?state.league[i].a:state.league[i].b;
+  const w=s==='a'?state.league[i].a:state.league[i].b;
   state.league[i].w=w;
   state.points[w]+=3;
   save();
@@ -127,17 +55,16 @@ function winLeague(i,s){
 
 // ---------- LEADERBOARD ----------
 function renderBoard(){
-  const arr = Object.keys(state.points)
+  const arr=Object.keys(state.points)
     .map(p=>({p,pts:state.points[p]}))
     .sort((a,b)=>b.pts-a.pts);
 
-  const tb = document.getElementById('leaderboard');
-  tb.innerHTML='';
+  leaderboard.innerHTML='';
   arr.forEach((x,i)=>{
-    tb.innerHTML+=`<tr><td>${i+1}</td><td>${x.p}</td><td>${x.pts}</td></tr>`;
+    leaderboard.innerHTML+=`<tr><td>${i+1}</td><td>${x.p}</td><td>${x.pts}</td></tr>`;
   });
 
-  if(state.ko.r32.length===0){
+  if(state.ko.r32.length===0 && arr.length>=32){
     startKO(arr.slice(0,32).map(x=>x.p));
   }
 }
@@ -149,49 +76,46 @@ function startKO(list){
     state.ko.r32.push({a:list[i],b:list[31-i],w:null});
   }
   save();
+  renderKO();
+}
+
+function nextRound(curr,next){
+  if(curr.every(m=>m.w)){
+    state.ko[next]=[];
+    for(let i=0;i<curr.length;i+=2){
+      state.ko[next].push({a:curr[i].w,b:curr[i+1].w,w:null});
+    }
+  }
 }
 
 function renderKO(){
-  const d=document.getElementById('knockout');
-  d.innerHTML='';
-  drawRound('Round of 32','r32');
-  drawRound('Round of 16','r16');
-  drawRound('Quarterfinal','qf');
-  drawRound('Semifinal','sf');
+  knockout.innerHTML='';
+  drawRound("Round of 32","r32","r16");
+  drawRound("Round of 16","r16","qf");
+  drawRound("Quarterfinal","qf","sf");
+  drawRound("Semifinal","sf","final");
   drawFinal();
 }
 
-function drawRound(title,key){
+function drawRound(title,key,next){
   if(state.ko[key].length===0) return;
-  let html=`<h3>${title}</h3>`;
+  knockout.innerHTML+=`<h3>${title}</h3>`;
   state.ko[key].forEach((m,i)=>{
-    html+=`
+    knockout.innerHTML+=`
     <div class="${m.w?'completed-match':''}">
       ${m.a} vs ${m.b}
-      ${!m.w?`
+      ${m.w?`<span class="tick">✔</span>`:`
       <button onclick="winKO('${key}',${i},'a')">Win</button>
-      <button onclick="winKO('${key}',${i},'b')">Win</button>
-      `:`<span class="tick">✔</span>`}
+      <button onclick="winKO('${key}',${i},'b')">Win</button>`}
     </div>`;
   });
-  d.innerHTML+=html;
+  nextRound(state.ko[key],next);
 }
 
 function winKO(r,i,s){
   const m=state.ko[r][i];
   if(m.w) return;
   m.w=s==='a'?m.a:m.b;
-
-  const next={r32:'r16',r16:'qf',qf:'sf',sf:'final'};
-  if(next[r]){
-    const n=state.ko[next[r]];
-    n.push({a:m.w,b:null,w:null});
-    if(n.length%2===0){
-      const b=n.pop().a, a=n.pop().a;
-      n.push({a,b,w:null});
-    }
-  }
-  if(r==='final') state.ko.champion=m.w;
   save();
   renderKO();
 }
@@ -203,16 +127,15 @@ function drawFinal(){
   <h3>Final</h3>
   <div class="${m.w?'completed-match':''}">
     ${m.a} vs ${m.b}
-    ${!m.w?`
+    ${m.w?`<h2>🏆 Champion: ${m.w}</h2>`:`
     <button onclick="winKO('final',0,'a')">Win</button>
-    <button onclick="winKO('final',0,'b')">Win</button>
-    `:`<h2>🏆 Champion: ${state.ko.champion}</h2>`}
+    <button onclick="winKO('final',0,'b')">Win</button>`}
   </div>`;
 }
 
 // ---------- RESET ----------
 function resetAll(){
-  if(!confirm('Reset all data?')) return;
+  if(!confirm("Reset all data?")) return;
   localStorage.removeItem(STORE);
   location.reload();
 }
@@ -222,6 +145,3 @@ renderLeague();
 renderBoard();
 renderKO();
 </script>
-
-</body>
-</html>

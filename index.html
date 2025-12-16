@@ -83,6 +83,21 @@ const players = ["Naruto","Kakashi","Sai","Sakura","Neji","Rocklee","Tenten","Mi
 let matches = [], scores = {};
 let KO = { r32: [], r16: [], qf: [], sf: [], final: [], champion: null };
 
+// ---- SAVE / LOAD FULL STATE ----
+function saveAll(){
+  localStorage.setItem('ironFistFull', JSON.stringify({ matches, scores, KO }));
+}
+
+function loadAll(){
+  const data = JSON.parse(localStorage.getItem('ironFistFull'));
+  if(!data) return false;
+  matches = data.matches;
+  scores = data.scores;
+  KO = data.KO || KO;
+  return true;
+}
+
+
 function generateMatches(){
   players.forEach(p=>scores[p]={points:0});
   for(let i=0;i<players.length;i++){
@@ -105,6 +120,7 @@ function setWinner(i,w){
   if(matches[i].winner) return;
   let win=w===1?matches[i].p1:matches[i].p2;
   matches[i].winner=win; scores[win].points+=3;
+  saveAll();
   renderLeaderboard();
 }
 
@@ -133,7 +149,15 @@ function renderR32(list){
 function winKO(r,i,w){
   let m=KO[r][i]; if(m.winner) return;
   m.winner=w===1?m.p1:m.p2;
+
   if(r==='r32'){ KO.r16.push(m.winner); if(KO.r16.length===16) renderNext('r16',8); }
+  if(r==='r16'){ KO.qf.push(m.winner); if(KO.qf.length===8) renderNext('qf',4); }
+  if(r==='qf'){ KO.sf.push(m.winner); if(KO.sf.length===4) renderNext('sf',2); }
+  if(r==='sf'){ KO.final.push(m.winner); if(KO.final.length===2) renderFinal(); }
+  if(r==='final'){ KO.champion=m.winner; document.getElementById('knockout').innerHTML+=`<h2>🏆 Champion: ${KO.champion}</h2>`; }
+
+  saveAll();
+}
   if(r==='r16'){ KO.qf.push(m.winner); if(KO.qf.length===8) renderNext('qf',4); }
   if(r==='qf'){ KO.sf.push(m.winner); if(KO.sf.length===4) renderNext('sf',2); }
   if(r==='sf'){ KO.final.push(m.winner); if(KO.final.length===2) renderFinal(); }
@@ -162,7 +186,16 @@ function renderFinal(){
   <button onclick="winKO('final',0,2)">Win</button></p>`;
 }
 
-function resetAll(){ matches=[]; scores={}; generateMatches(); renderMatches(); renderLeaderboard(); }
+function resetAll(){
+  if(!confirm('Reset all data?')) return;
+  localStorage.removeItem('ironFistFull');
+  matches=[]; scores={}; KO={ r32: [], r16: [], qf: [], sf: [], final: [], champion: null };
+  if(!loadAll()){
+  generateMatches();
+}
+renderMatches();
+renderLeaderboard();
+}; generateMatches(); renderMatches(); renderLeaderboard(); }
 
 generateMatches(); renderMatches(); renderLeaderboard();
 </script>

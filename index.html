@@ -1,198 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Iron Fist Tournament</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{
-  font-family:Poppins,sans-serif;
-  background:radial-gradient(circle,#1a1a1a,#000);
-  color:#fdd835;
-  text-align:center;
-  margin:0
-}
-h1{color:red;text-shadow:0 0 15px red;font-size:40px}
-button{
-  cursor:pointer;
-  padding:5px 12px;
-  border:none;
-  border-radius:6px;
-  margin:3px;
-  font-weight:600
-}
-.win-btn{background:red;color:#fff}
-.reset-btn{background:#ff3d00;color:#fff}
-.completed-match{
-  background:rgba(0,255,0,.15);
-  border:1px solid #00ff37;
-  box-shadow:0 0 10px #00ff3744;
-  border-radius:6px;
-  padding:5px
-}
-.tick{color:#00ff37;font-weight:bold;margin-left:6px}
-table{
-  margin:25px auto;
-  border-collapse:collapse;
-  width:80%;
-  max-width:900px;
-  background:rgba(0,0,0,.7)
-}
-th,td{border:1px solid #fdd83566;padding:8px}
-th{background:#222}
-.round-title{font-size:22px;margin-top:40px}
-</style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iron Fist Tournament</title>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+      color: #fdd835;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      color: red;
+      text-shadow: 0 0 15px #ff0000;
+      font-size: 40px;
+      margin-top: 20px;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 5px 12px;
+      border: none;
+      border-radius: 6px;
+      margin: 3px;
+      font-weight: 600;
+    }
+
+    .win-btn {
+      background: red;
+      color: #fff;
+    }
+
+    .lose-btn {
+      background: #555;
+      color: #fff;
+    }
+
+    .save-btn {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .reset-btn {
+      background: #ff3d00;
+      color: white;
+    }
+
+    .share-btn {
+      background: #2962ff;
+      color: white;
+    }
+
+    .completed-match {
+      background: rgba(0, 255, 0, 0.15);
+      border: 1px solid #00ff37;
+      box-shadow: 0 0 10px #00ff3744;
+      border-radius: 6px;
+      padding: 5px;
+    }
+
+    .tick {
+      color: #00ff37;
+      font-size: 20px;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    table {
+      margin: 25px auto;
+      border-collapse: collapse;
+      width: 80%;
+      max-width: 1000px;
+      background: rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 20px #fdd83544;
+    }
+
+    th,
+    td {
+      border: 1px solid #fdd83566;
+      padding: 8px;
+    }
+
+    th {
+      background: #222;
+      color: #fdd835;
+    }
+
+    tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .round-title {
+      font-size: 22px;
+      margin-top: 40px;
+      color: #fdd835;
+      text-shadow: 0 0 10px #fdd835;
+    }
+
+    .trophy {
+      font-size: 26px;
+      color: gold;
+      margin-left: 8px;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>Iron Fist Tournament</h1>
-<button onclick="resetAll()" class="reset-btn">🔄 Reset All</button>
+  <h1>Iron Fist Tournament</h1>
 
-<h2 class="round-title">League Stage</h2>
-<div id="matches"></div>
+  <button onclick="saveData()" class="save-btn">💾 Save Progress</button>
+  <button onclick="loadData()" class="save-btn">📂 Load Saved</button>
+  <button onclick="resetAll()" class="reset-btn">🔄 Reset All</button>
+  <button onclick="getShareLink()" class="share-btn">🔗 Share Progress</button>
 
-<h2 class="round-title">Leaderboard (Top 32 Qualify)</h2>
-<table>
-<thead><tr><th>Rank</th><th>Player</th><th>Points</th></tr></thead>
-<tbody id="leaderboard"></tbody>
-</table>
+  <h2 class="round-title">League Stage (3 Matches Each)</h2>
+  <div id="matches"></div>
 
-<h2 class="round-title">Knockout Rounds</h2>
-<div id="knockout"></div>
+  <h2 class="round-title">Leaderboard</h2>
 
-<script>
-const players=["Naruto","Kakashi","Sai","Sakura","Neji","Rocklee","Tenten","Might Guy","Shikamaru","Ino","Choji","Asuma","Kiba","Shino","Hinata","Kurenai","Sasuke","Suigetsu","Karin","Jugo","Deidara","Hiruiko","Sasori","Tobi","Itachi","Kisame","Hidan","Kakuzu","Konan","Pain","Gaara","Temari","Kankuro","Chiyo","Yamato","Shizune","Tsunade","Jiraiya","Kabuto","Orochimaru","Minato","Small Obito","Small Kakashi","Hashirama"];
+  <table id="leaderboard">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Wins</th>
+        <th>Losses</th>
+        <th>Points</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-let matches=[],scores={},KO={
-  r32:[],r16:[],qf:[],sf:[],final:[],champion:null
-};
+  <h2 class="round-title">Knockout Rounds</h2>
+  <div id="knockout"></div>
 
-function save(){localStorage.setItem("ironFist",JSON.stringify({matches,scores,KO}))}
-function load(){
-  let d=JSON.parse(localStorage.getItem("ironFist"));
-  if(!d) return false;
-  matches=d.matches; scores=d.scores; KO=d.KO; return true;
-}
+  <script>
+    /* PLAYERS */
+    const players = [
+      "Naruto", "Kakashi", "Sai", "Sakura", "Neji", "Rocklee", "Tenten", "Might Guy",
+      "Shikamaru", "Ino", "Choji", "Asuma", "Kiba", "Shino", "Hinata", "Kurenai",
+      "Sasuke", "Suigetsu", "Karin", "Jugo", "Deidara", "Hiruiko", "Sasori", "Tobi",
+      "Itachi", "Kisame", "Hidan", "Kakuzu", "Konan", "Pain", "Gaara", "Temari",
+      "Kankuro", "Chiyo", "Yamato", "Shizune", "Tsunade", "Jiraiya", "Kabuto",
+      "Orochimaru", "Minato", "Small Obito", "Small Kakashi", "Hashirama"
+    ];
 
-function init(){
- if(!load()){
-  players.forEach(p=>scores[p]={points:0});
-  for(let i=0;i<players.length;i++)
-   for(let j=i+1;j<i+4 && j<players.length;j++)
-    matches.push({p1:players[i],p2:players[j],winner:null});
- }
- renderLeague(); renderLeaderboard(); renderKO();
-}
+    let matches = [];
+    let scores = {};
 
-function renderLeague(){
- let d=document.getElementById("matches"); d.innerHTML="";
- matches.forEach((m,i)=>{
-  let done=m.winner?`class="completed-match"`:"";
-  let tick=m.winner?`<span class="tick">✔</span>`:"";
-  d.innerHTML+=`
-  <p ${done}>${m.p1} vs ${m.p2}
-  <button class="win-btn" onclick="winLeague(${i},1)">Win</button>
-  <button class="win-btn" onclick="winLeague(${i},2)">Win</button>
-  ${tick}</p>`;
- });
-}
+    /* SHUFFLE */
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
+    }
 
-function winLeague(i,w){
- if(matches[i].winner) return;
- let win=w===1?matches[i].p1:matches[i].p2;
- matches[i].winner=win;
- scores[win].points+=3;
- save(); renderLeague(); renderLeaderboard();
-}
+    /* GENERATE MATCHES */
+    function generateMatches() {
+      const usedPairs = new Set();
 
-function renderLeaderboard(){
- let arr=Object.keys(scores).map(p=>({p,pt:scores[p].points}))
- .sort((a,b)=>b.pt-a.pt);
- let tb=document.getElementById("leaderboard"); tb.innerHTML="";
- arr.forEach((x,i)=>tb.innerHTML+=
- `<tr><td>${i+1}</td><td>${x.p}</td><td>${x.pt}</td></tr>`);
- if(!KO.r32.length) buildKO(arr.slice(0,32).map(x=>x.p));
-}
+      for (let i = 0; i < players.length; i++) {
+        const p = players[i];
 
-function buildKO(list){
- KO={r32:[],r16:[],qf:[],sf:[],final:[],champion:null};
- for(let i=0;i<16;i++)
-  KO.r32.push({p1:list[i],p2:list[31-i],winner:null});
- save(); renderKO();
-}
+        if (!scores[p]) {
+          scores[p] = { wins: 0, losses: 0, points: 0 };
+        }
 
-function renderKO(){
- let d=document.getElementById("knockout"); d.innerHTML="";
- renderRound("Round of 32","r32","r16",16);
- renderRound("Round of 16","r16","qf",8);
- renderRound("Quarterfinals","qf","sf",4);
- renderRound("Semifinals","sf","final",2);
- renderFinal();
-}
+        const opponents = shuffle(players.filter(x => x !== p));
+        let count = 0;
 
-function renderRound(title,r,next,count){
- if(!KO[r].length) return;
- let h=`<h3>${title}</h3>`;
- KO[r].forEach((m,i)=>{
-  let done=m.winner?`class="completed-match"`:"";
-  let tick=m.winner?`<span class="tick">✔</span>`:"";
-  h+=`
-  <p ${done}>${m.p1} vs ${m.p2}
-  <button class="win-btn" onclick="winKO('${r}','${next}',${i},1)">Win</button>
-  <button class="win-btn" onclick="winKO('${r}','${next}',${i},2)">Win</button>
-  ${tick}</p>`;
- });
- document.getElementById("knockout").innerHTML+=h;
-}
+        for (let o of opponents) {
+          const key = [p, o].sort().join("-");
 
-function winKO(r,next,i,w){
- let m=KO[r][i]; if(m.winner) return;
- m.winner=w===1?m.p1:m.p2;
- if(next){
-  if(!KO[next]) KO[next]=[];
-  KO[next].push({p1:null,p2:null,winner:m.winner});
- }
- if(KO[r].every(x=>x.winner)) buildNext(r,next);
- save(); renderKO();
-}
+          if (!usedPairs.has(key)) {
+            matches.push({ p1: p, p2: o, winner: null });
+            usedPairs.add(key);
+            count++;
 
-function buildNext(r,next){
- let winners=KO[r].map(x=>x.winner);
- KO[next]=[];
- for(let i=0;i<winners.length/2;i++)
-  KO[next].push({p1:winners[i],p2:winners[winners.length-1-i],winner:null});
-}
+            if (count === 3) break;
+          }
+        }
+      }
+    }
 
-function renderFinal(){
- if(!KO.final.length) return;
- let m=KO.final[0];
- let tick=m.winner?`<span class="tick">✔</span>`:"";
- document.getElementById("knockout").innerHTML+=`
- <h3>Final</h3>
- <p class="${m.winner?"completed-match":""}">
- ${m.p1} vs ${m.p2}
- <button class="win-btn" onclick="finish(1)">Win</button>
- <button class="win-btn" onclick="finish(2)">Win</button>
- ${tick}</p>`;
-}
+    /* RENDER MATCHES */
+    function renderMatches() {
+      const div = document.getElementById("matches");
+      div.innerHTML = "";
 
-function finish(w){
- let m=KO.final[0]; if(m.winner) return;
- m.winner=w===1?m.p1:m.p2;
- KO.champion=m.winner;
- save();
- document.getElementById("knockout").innerHTML+=`<h2>🏆 Champion: ${KO.champion}</h2>`;
-}
+      matches.forEach((m, i) => {
+        const box = document.createElement("div");
+        box.className = m.winner ? "completed-match" : "";
 
-function resetAll(){
- if(!confirm("Reset everything?"))return;
- localStorage.removeItem("ironFist");
- location.reload();
-}
+        box.innerHTML = `
+          <p>🔥 ${m.p1} vs ${m.p2} ${m.winner ? "<span class='tick'>✔️</span>" : ""}</p>
+          <button class="win-btn" onclick="setWinner(${i}, 1)" ${m.winner ? "disabled" : ""}>${m.p1} Win</button>
+          <button class="lose-btn" onclick="setWinner(${i}, 2)" ${m.winner ? "disabled" : ""}>${m.p2} Win</button>
+          <hr style="width:60%;opacity:0.2;">
+        `;
 
-init();
-</script>
+        div.appendChild(box);
+      });
+    }
+
+    /* SET WINNER */
+    function setWinner(index, winner) {
+      const match = matches[index];
+      if (match.winner) return;
+
+      let p1 = match.p1;
+      let p2 = match.p2;
+
+      if (winner === 1) {
+        match.winner = p1;
+        scores[p1].wins++;
+        scores[p1].points += 3;
+        scores[p2].losses++;
+      } else {
+        match.winner = p2;
+        scores[p2].wins++;
+        scores[p2].points += 3;
+        scores[p1].losses++;
+      }
+
+      saveData();
+      renderMatches();
+      renderLeaderboard();
+    }
+
+    /* LEADERBOARD */
+    function renderLeaderboard() {
+      const tbody = document.querySelector("#leaderboard tbody");
+
+      const arr = Object.keys(scores).map(p => ({
+        player: p,
+        ...scores[p]
+      }));
+
+      arr.sort((a, b) => b.points - a.points || b.wins - a.wins);
+      tbody.innerHTML = "";
+
+      arr.forEach((p, i) => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${p.player}</td>
+            <td>${p.wins}</td>
+            <td>${p.losses}</td>
+            <td>${p.points}</td>
+          </tr>
+        `;
+      });
+
+      renderKnockout(arr.slice(0, 22));
+    }
+
+    /* KNOCKOUT */
+    function renderKnockout(top22) {
+      const div = document.getElementById("knockout");
+      if (!top22.length) return;
+
+      let html = "<h3>Round of 22</h3>";
+
+      for (let i = 0; i < 11; i++) {
+        html += `<p>${top22[i].player} vs ${top22[21 - i].player}</p>`;
+      }
+
+      html += "<h3>Quarterfinals</h3><p>Winners auto-promote 🔥</p>";
+      html += "<h3>Semifinals</h3><p>Winners advance ⚡</p>";
+      html += "<h3>Final</h3><p>🏆 Champion: TBD <span class='trophy'>🏆</span></p>";
+
+      div.innerHTML = html;
+    }
+
+    /* SAVE LOAD */
+    function saveData() {
+      localStorage.setItem("ironFistData", JSON.stringify({ matches, scores }));
+    }
+
+    function loadData() {
+      const data = JSON.parse(localStorage.getItem("ironFistData"));
+
+      if (data) {
+        matches = data.matches;
+        scores = data.scores;
+        renderMatches();
+        renderLeaderboard();
+      }
+    }
+
+    /* RESET */
+    function resetAll() {
+      if (!confirm("Reset all data?")) return;
+
+      localStorage.removeItem("ironFistData");
+      matches = [];
+      scores = {};
+
+      generateMatches();
+      renderMatches();
+      renderLeaderboard();
+    }
+
+    /* SHARE URL */
+    function getShareLink() {
+      const encoded = btoa(JSON.stringify({ matches, scores }));
+      const url = window.location.href.split("?")[0] + "?data=" + encoded;
+
+      navigator.clipboard.writeText(url);
+      alert("Share Link Copied! 📎");
+    }
+
+    /* URL LOAD */
+    function loadFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const d = params.get("data");
+      if (!d) return;
+
+      try {
+        const parsed = JSON.parse(atob(d));
+        matches = parsed.matches;
+        scores = parsed.scores;
+        localStorage.setItem("ironFistData", JSON.stringify(parsed));
+        alert("Progress Loaded from Shared Link!");
+      } catch {
+        alert("Invalid Link!");
+      }
+    }
+
+    /* INIT FIXED */
+    function init() {
+      loadFromURL();
+
+      const saved = JSON.parse(localStorage.getItem("ironFistData"));
+
+      if (saved) {
+        matches = saved.matches;
+        scores = saved.scores;
+      } else {
+        generateMatches();
+      }
+
+      renderMatches();
+      renderLeaderboard();
+    }
+
+    init();
+  </script>
+
 </body>
 </html>

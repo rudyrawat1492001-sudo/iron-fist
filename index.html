@@ -139,6 +139,8 @@
   </table>
 
   <h2 class="round-title">Knockout Rounds</h2>
+  <button class="reset-btn" onclick="resetRound32()">♻️ Reset Round of 32</button>
+
   <div id="knockout"></div>
 
   <script>
@@ -429,9 +431,27 @@ function renderKnockout(top32) {
       renderMatches();
       renderLeaderboard();
     }
+    
+function resetRound32() {
+  Object.keys(KO).forEach(k => {
+    if (
+      k.startsWith("R32-") ||
+      k.startsWith("R16-") ||
+      k.startsWith("QF-")  ||
+      k.startsWith("SF-")  ||
+      k.startsWith("FINAL-")
+    ) {
+      delete KO[k];
+    }
+  });
+
+  saveKO();
+  renderLeaderboard();
+}
 
     init();
   </script>
 
 </body>
 </html>
+

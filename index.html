@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-  
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -260,93 +260,55 @@
       renderKnockout(arr.slice(0, 32));
     }
 
-  /* =======================
-   KNOCKOUT BRACKET LOGIC
-   ======================= */
+    /* KNOCKOUT */
+    let knockoutData = JSON.parse(localStorage.getItem("knockoutData")) || {};
 
-let KO = JSON.parse(localStorage.getItem("KO")) || {};
+    function renderKnockout(top32) {
+      const div = document.getElementById("knockout");
+      if (!top32.length) return;
 
-function saveKO() {
-  localStorage.setItem("KO", JSON.stringify(KO));
-}
+      let html = "<h3>Round of 32</h3>";
 
-function setKO(key, winner) {
-  if (KO[key]) return;
-  KO[key] = winner;
-  saveKO();
-  renderLeaderboard(); // auto refresh
-}
+      for (let i = 0; i < 16; i++) {
+        const a = top32[i].player;
+        const b = top32[31 - i].player;
+        const key = `R32-${a}-${b}`;
+        const winner = knockoutData[key];
 
-function getRoundWinners(prefix) {
-  return Object.keys(KO)
-    .filter(k => k.startsWith(prefix))
-    .sort()
-    .map(k => KO[k]);
-}
+        html += `
+          <p class="${winner ? 'completed-match' : ''}">
+            ${a} vs ${b}
+            ${winner ? "<span class='tick'>✔️</span>" : ""}
+            <br>
+            <button onclick="setKO('${key}','${a}')" ${winner ? 'disabled' : ''}>${a} Win</button>
+            <button onclick="setKO('${key}','${b}')" ${winner ? 'disabled' : ''}>${b} Win</button>
+          </p>
+        `;
+      }
 
-function renderRound(title, players, prefix) {
-  let html = `<h3>${title}</h3>`;
+      html += "<h3>Round of 16 → Quarterfinals → Semifinals → Final</h3>";
+      html += "<p>Auto progression based on winners</p>";
 
-  for (let i = 0; i < players.length; i += 2) {
-    const a = players[i];
-    const b = players[i + 1];
-    const key = `${prefix}-${i / 2}`;
-    const win = KO[key];
+      const champ = knockoutData['CHAMPION'];
+      if (champ) {
+        html += `<h2>🏆 Champion: ${champ} <span class='trophy'>🏆</span></h2>`;
+      }
 
-    html += `
-      <div class="${win ? 'completed-match' : ''}">
-        <p>${a} vs ${b} ${win ? "<span class='tick'>✔️</span>" : ""}</p>
-        <button onclick="setKO('${key}','${a}')" ${win ? 'disabled' : ''}>${a} Win</button>
-        <button onclick="setKO('${key}','${b}')" ${win ? 'disabled' : ''}>${b} Win</button>
-      </div>
-    `;
-  }
-  return html;
-}
+      div.innerHTML = html;
+      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
+    }
 
-function renderKnockout(top32) {
-  const div = document.getElementById("knockout");
-  if (!top32.length) return;
+    function setKO(key, winner) {
+      knockoutData[key] = winner;
 
-  let html = "";
-  const p32 = top32.map(p => p.player);
+      const wins = Object.values(knockoutData).filter(v => v === winner).length;
+      if (wins >= 5) {
+        knockoutData['CHAMPION'] = winner;
+      }
 
-  // ROUND OF 32
-  html += renderRound("Round of 32", p32, "R32");
-  const r32 = getRoundWinners("R32");
-
-  // ROUND OF 16
-  if (r32.length === 16) {
-    html += renderRound("Round of 16", r32, "R16");
-  }
-  const r16 = getRoundWinners("R16");
-
-  // QUARTERFINALS
-  if (r16.length === 8) {
-    html += renderRound("Quarterfinals", r16, "QF");
-  }
-  const qf = getRoundWinners("QF");
-
-  // SEMIFINALS
-  if (qf.length === 4) {
-    html += renderRound("Semifinals", qf, "SF");
-  }
-  const sf = getRoundWinners("SF");
-
-  // FINAL
-  if (sf.length === 2) {
-    html += renderRound("Final", sf, "FINAL");
-  }
-
-  // CHAMPION
-  if (KO["FINAL-0"]) {
-    html += `<h2>🏆 Champion: ${KO["FINAL-0"]} <span class="trophy">🏆</span></h2>`;
-  }
-
-  div.innerHTML = html;
-  saveKO();
-}
-
+      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
+      renderLeaderboard();
+    }
 
     /* SAVE LOAD */
     function saveData() {

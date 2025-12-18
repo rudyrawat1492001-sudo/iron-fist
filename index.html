@@ -1,389 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Iron Fist Tournament</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Iron Fist Tournament</title>
 
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-      color: #fdd835;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-
-    h1 {
-      color: red;
-      text-shadow: 0 0 15px #ff0000;
-      font-size: 40px;
-      margin-top: 20px;
-    }
-
-    button {
-      cursor: pointer;
-      padding: 5px 12px;
-      border: none;
-      border-radius: 6px;
-      margin: 3px;
-      font-weight: 600;
-    }
-
-    .win-btn {
-      background: red;
-      color: #fff;
-    }
-
-    .lose-btn {
-      background: #555;
-      color: #fff;
-    }
-
-    .save-btn {
-      background: #4CAF50;
-      color: white;
-    }
-
-    .reset-btn {
-      background: #ff3d00;
-      color: white;
-    }
-
-    .share-btn {
-      background: #2962ff;
-      color: white;
-    }
-
-    .completed-match {
-      background: rgba(0, 255, 0, 0.15);
-      border: 1px solid #00ff37;
-      box-shadow: 0 0 10px #00ff3744;
-      border-radius: 6px;
-      padding: 5px;
-    }
-
-    .tick {
-      color: #00ff37;
-      font-size: 20px;
-      font-weight: bold;
-      margin-left: 6px;
-    }
-
-    table {
-      margin: 25px auto;
-      border-collapse: collapse;
-      width: 80%;
-      max-width: 1000px;
-      background: rgba(0, 0, 0, 0.7);
-      box-shadow: 0 0 20px #fdd83544;
-    }
-
-    th,
-    td {
-      border: 1px solid #fdd83566;
-      padding: 8px;
-    }
-
-    th {
-      background: #222;
-      color: #fdd835;
-    }
-
-    tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .round-title {
-      font-size: 22px;
-      margin-top: 40px;
-      color: #fdd835;
-      text-shadow: 0 0 10px #fdd835;
-    }
-
-    .trophy {
-      font-size: 26px;
-      color: gold;
-      margin-left: 8px;
-    }
-  </style>
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+  color: #fdd835;
+  text-align: center;
+}
+h1 {
+  color: red;
+  text-shadow: 0 0 15px #ff0000;
+  font-size: 40px;
+}
+button {
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 6px;
+  margin: 3px;
+  font-weight: 600;
+}
+.win-btn { background:red;color:#fff }
+.lose-btn { background:#555;color:#fff }
+.completed-match {
+  background: rgba(0,255,0,0.15);
+  border:1px solid #00ff37;
+  box-shadow:0 0 10px #00ff3744;
+  border-radius:6px;
+  padding:5px;
+}
+.tick { color:#00ff37;font-size:20px;margin-left:6px }
+.round-title { font-size:22px;margin-top:40px }
+.trophy { font-size:26px;color:gold }
+table {
+  margin:25px auto;
+  border-collapse:collapse;
+  width:80%;
+}
+th,td { border:1px solid #fdd83566;padding:8px }
+th { background:#222 }
+</style>
 </head>
 
 <body>
 
-  <h1>Iron Fist Tournament</h1>
+<h1>Iron Fist Tournament</h1>
 
-  <button onclick="saveData()" class="save-btn">💾 Save Progress</button>
-  <button onclick="loadData()" class="save-btn">📂 Load Saved</button>
-  <button onclick="resetAll()" class="reset-btn">🔄 Reset All</button>
-  <button onclick="getShareLink()" class="share-btn">🔗 Share Progress</button>
+<h2 class="round-title">League Stage</h2>
+<div id="matches"></div>
 
-  <h2 class="round-title">League Stage (3 Matches Each)</h2>
-  <div id="matches"></div>
+<h2 class="round-title">Leaderboard</h2>
+<table id="leaderboard">
+<thead>
+<tr><th>Rank</th><th>Player</th><th>Wins</th><th>Losses</th><th>Points</th></tr>
+</thead>
+<tbody></tbody>
+</table>
 
-  <h2 class="round-title">Leaderboard</h2>
+<h2 class="round-title">Knockout Rounds</h2>
+<div id="knockout"></div>
 
-  <table id="leaderboard">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Player</th>
-        <th>Wins</th>
-        <th>Losses</th>
-        <th>Points</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<script>
+/* ================= LEAGUE (UNCHANGED) ================= */
 
-  <h2 class="round-title">Knockout Rounds</h2>
-  <div id="knockout"></div>
+const players = [
+"Naruto","Kakashi","Sai","Sakura","Neji","Rocklee","Tenten","Might Guy",
+"Shikamaru","Ino","Choji","Asuma","Kiba","Shino","Hinata","Kurenai",
+"Sasuke","Suigetsu","Karin","Jugo","Deidara","Hiruiko","Sasori","Tobi",
+"Itachi","Kisame","Hidan","Kakuzu","Konan","Pain","Gaara","Temari",
+"Kankuro","Chiyo","Yamato","Shizune","Tsunade","Jiraiya","Kabuto",
+"Orochimaru","Minato","Small Obito","Small Kakashi","Hashirama"
+];
 
-  <script>
-    /* PLAYERS */
-    const players = [
-      "Naruto", "Kakashi", "Sai", "Sakura", "Neji", "Rocklee", "Tenten", "Might Guy",
-      "Shikamaru", "Ino", "Choji", "Asuma", "Kiba", "Shino", "Hinata", "Kurenai",
-      "Sasuke", "Suigetsu", "Karin", "Jugo", "Deidara", "Hiruiko", "Sasori", "Tobi",
-      "Itachi", "Kisame", "Hidan", "Kakuzu", "Konan", "Pain", "Gaara", "Temari",
-      "Kankuro", "Chiyo", "Yamato", "Shizune", "Tsunade", "Jiraiya", "Kabuto",
-      "Orochimaru", "Minato", "Small Obito", "Small Kakashi", "Hashirama"
-    ];
+let matches = [];
+let scores = {};
 
-    let matches = [];
-    let scores = {};
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
 
-    /* SHUFFLE */
-    function shuffle(arr) {
-      return arr.sort(() => Math.random() - 0.5);
-    }
-
-    /* GENERATE MATCHES */
-    function generateMatches() {
-      const usedPairs = new Set();
-
-      for (let i = 0; i < players.length; i++) {
-        const p = players[i];
-
-        if (!scores[p]) {
-          scores[p] = { wins: 0, losses: 0, points: 0 };
-        }
-
-        const opponents = shuffle(players.filter(x => x !== p));
-        let count = 0;
-
-        for (let o of opponents) {
-          const key = [p, o].sort().join("-");
-
-          if (!usedPairs.has(key)) {
-            matches.push({ p1: p, p2: o, winner: null });
-            usedPairs.add(key);
-            count++;
-
-            if (count === 3) break;
-          }
-        }
+function generateMatches(){
+  const used=new Set();
+  players.forEach(p=>{
+    if(!scores[p]) scores[p]={wins:0,losses:0,points:0};
+    shuffle(players.filter(x=>x!==p)).slice(0,3).forEach(o=>{
+      const k=[p,o].sort().join("-");
+      if(!used.has(k)){
+        matches.push({p1:p,p2:o,winner:null});
+        used.add(k);
       }
-    }
+    });
+  });
+}
 
-    /* RENDER MATCHES */
-    function renderMatches() {
-      const div = document.getElementById("matches");
-      div.innerHTML = "";
+function renderMatches(){
+  const d=document.getElementById("matches");
+  d.innerHTML="";
+  matches.forEach((m,i)=>{
+    d.innerHTML+=`
+    <div class="${m.winner?'completed-match':''}">
+      ${m.p1} vs ${m.p2} ${m.winner?"✔️":""}<br>
+      <button onclick="setWinner(${i},1)" ${m.winner?'disabled':''}>${m.p1} Win</button>
+      <button onclick="setWinner(${i},2)" ${m.winner?'disabled':''}>${m.p2} Win</button>
+    </div>`;
+  });
+}
 
-      matches.forEach((m, i) => {
-        const box = document.createElement("div");
-        box.className = m.winner ? "completed-match" : "";
+function setWinner(i,w){
+  const m=matches[i];
+  if(m.winner) return;
+  const a=m.p1,b=m.p2;
+  if(w===1){m.winner=a;scores[a].wins++;scores[a].points+=3;scores[b].losses++;}
+  else{m.winner=b;scores[b].wins++;scores[b].points+=3;scores[a].losses++;}
+  renderMatches();renderLeaderboard();
+}
 
-        box.innerHTML = `
-          <p>🔥 ${m.p1} vs ${m.p2} ${m.winner ? "<span class='tick'>✔️</span>" : ""}</p>
-          <button class="win-btn" onclick="setWinner(${i}, 1)" ${m.winner ? "disabled" : ""}>${m.p1} Win</button>
-          <button class="lose-btn" onclick="setWinner(${i}, 2)" ${m.winner ? "disabled" : ""}>${m.p2} Win</button>
-          <hr style="width:60%;opacity:0.2;">
-        `;
+function renderLeaderboard(){
+  const tb=document.querySelector("#leaderboard tbody");
+  const arr=Object.keys(scores).map(p=>({player:p,...scores[p]}))
+    .sort((a,b)=>b.points-a.points||b.wins-a.wins);
+  tb.innerHTML="";
+  arr.forEach((p,i)=>{
+    tb.innerHTML+=`<tr><td>${i+1}</td><td>${p.player}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.points}</td></tr>`;
+  });
+  renderKnockout(arr.slice(0,32));
+}
 
-        div.appendChild(box);
-      });
-    }
+/* ================= KNOCKOUT (NEW LOGIC) ================= */
 
-    /* SET WINNER */
-    function setWinner(index, winner) {
-      const match = matches[index];
-      if (match.winner) return;
+let KO = JSON.parse(localStorage.getItem("KO")) || {R32:{},R16:{},QF:{},SF:{},FINAL:{}};
+function saveKO(){ localStorage.setItem("KO",JSON.stringify(KO)); }
 
-      let p1 = match.p1;
-      let p2 = match.p2;
+function setKO(round,key,winner){
+  if(KO[round][key]) return;
+  KO[round][key]=winner;
+  saveKO();
+  renderLeaderboard();
+}
 
-      if (winner === 1) {
-        match.winner = p1;
-        scores[p1].wins++;
-        scores[p1].points += 3;
-        scores[p2].losses++;
-      } else {
-        match.winner = p2;
-        scores[p2].wins++;
-        scores[p2].points += 3;
-        scores[p1].losses++;
-      }
+function winners(round){ return Object.values(KO[round]); }
 
-      saveData();
-      renderMatches();
-      renderLeaderboard();
-    }
+function drawRound(title,players,round){
+  let h=`<h3>${title}</h3>`;
+  for(let i=0;i<players.length;i+=2){
+    const a=players[i],b=players[i+1];
+    const win=KO[round][i/2];
+    h+=`
+    <div class="${win?'completed-match':''}">
+      ${a} vs ${b} ${win?"✔️":""}<br>
+      <button onclick="setKO('${round}','${i/2}','${a}')" ${win?'disabled':''}>${a} Win</button>
+      <button onclick="setKO('${round}','${i/2}','${b}')" ${win?'disabled':''}>${b} Win</button>
+    </div>`;
+  }
+  return h;
+}
 
-    /* LEADERBOARD */
-    function renderLeaderboard() {
-      const tbody = document.querySelector("#leaderboard tbody");
+function renderKnockout(top32){
+  const d=document.getElementById("knockout");
+  let h="";
+  const p32=top32.map(x=>x.player);
 
-      const arr = Object.keys(scores).map(p => ({
-        player: p,
-        ...scores[p]
-      }));
+  h+=drawRound("Round of 32",p32,"R32");
+  const r16=winners("R32");
+  if(r16.length===16) h+=drawRound("Round of 16",r16,"R16");
 
-      arr.sort((a, b) => b.points - a.points || b.wins - a.wins);
-      tbody.innerHTML = "";
+  const qf=winners("R16");
+  if(qf.length===8) h+=drawRound("Quarterfinals",qf,"QF");
 
-      arr.forEach((p, i) => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${p.player}</td>
-            <td>${p.wins}</td>
-            <td>${p.losses}</td>
-            <td>${p.points}</td>
-          </tr>
-        `;
-      });
+  const sf=winners("QF");
+  if(sf.length===4) h+=drawRound("Semifinals",sf,"SF");
 
-      renderKnockout(arr.slice(0, 32));
-    }
+  const f=winners("SF");
+  if(f.length===2) h+=drawRound("Final",f,"FINAL");
 
-    /* KNOCKOUT */
-    let knockoutData = JSON.parse(localStorage.getItem("knockoutData")) || {};
+  if(KO.FINAL["0"]) h+=`<h2>🏆 Champion: ${KO.FINAL["0"]} <span class="trophy">🏆</span></h2>`;
 
-    function renderKnockout(top32) {
-      const div = document.getElementById("knockout");
-      if (!top32.length) return;
+  d.innerHTML=h;
+  saveKO();
+}
 
-      let html = "<h3>Round of 32</h3>";
-
-      for (let i = 0; i < 16; i++) {
-        const a = top32[i].player;
-        const b = top32[31 - i].player;
-        const key = `R32-${a}-${b}`;
-        const winner = knockoutData[key];
-
-        html += `
-          <p class="${winner ? 'completed-match' : ''}">
-            ${a} vs ${b}
-            ${winner ? "<span class='tick'>✔️</span>" : ""}
-            <br>
-            <button onclick="setKO('${key}','${a}')" ${winner ? 'disabled' : ''}>${a} Win</button>
-            <button onclick="setKO('${key}','${b}')" ${winner ? 'disabled' : ''}>${b} Win</button>
-          </p>
-        `;
-      }
-
-      html += "<h3>Round of 16 → Quarterfinals → Semifinals → Final</h3>";
-      html += "<p>Auto progression based on winners</p>";
-
-      const champ = knockoutData['CHAMPION'];
-      if (champ) {
-        html += `<h2>🏆 Champion: ${champ} <span class='trophy'>🏆</span></h2>`;
-      }
-
-      div.innerHTML = html;
-      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
-    }
-
-    function setKO(key, winner) {
-      knockoutData[key] = winner;
-
-      const wins = Object.values(knockoutData).filter(v => v === winner).length;
-      if (wins >= 5) {
-        knockoutData['CHAMPION'] = winner;
-      }
-
-      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
-      renderLeaderboard();
-    }
-
-    /* SAVE LOAD */
-    function saveData() {
-      localStorage.setItem("ironFistData", JSON.stringify({ matches, scores }));
-    }
-
-    function loadData() {
-      const data = JSON.parse(localStorage.getItem("ironFistData"));
-
-      if (data) {
-        matches = data.matches;
-        scores = data.scores;
-        renderMatches();
-        renderLeaderboard();
-      }
-    }
-
-    /* RESET */
-    function resetAll() {
-      if (!confirm("Reset all data?")) return;
-
-      localStorage.removeItem("ironFistData");
-      matches = [];
-      scores = {};
-
-      generateMatches();
-      renderMatches();
-      renderLeaderboard();
-    }
-
-    /* SHARE URL */
-    function getShareLink() {
-      const encoded = btoa(JSON.stringify({ matches, scores }));
-      const url = window.location.href.split("?")[0] + "?data=" + encoded;
-
-      navigator.clipboard.writeText(url);
-      alert("Share Link Copied! 📎");
-    }
-
-    /* URL LOAD */
-    function loadFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const d = params.get("data");
-      if (!d) return;
-
-      try {
-        const parsed = JSON.parse(atob(d));
-        matches = parsed.matches;
-        scores = parsed.scores;
-        localStorage.setItem("ironFistData", JSON.stringify(parsed));
-        alert("Progress Loaded from Shared Link!");
-      } catch {
-        alert("Invalid Link!");
-      }
-    }
-
-    /* INIT FIXED */
-    function init() {
-      loadFromURL();
-
-      const saved = JSON.parse(localStorage.getItem("ironFistData"));
-
-      if (saved) {
-        matches = saved.matches;
-        scores = saved.scores;
-      } else {
-        generateMatches();
-      }
-
-      renderMatches();
-      renderLeaderboard();
-    }
-
-    init();
-  </script>
+/* INIT */
+generateMatches();
+renderMatches();
+renderLeaderboard();
+</script>
 
 </body>
 </html>

@@ -260,9 +260,7 @@
       renderKnockout(arr.slice(0, 32));
     }
 
-    /* =======================
-   KNOCKOUT BRACKET LOGIC
-   ======================= */
+  /* ================= KNOCKOUT REAL LOGIC ================= */
 
 let KO = JSON.parse(localStorage.getItem("KO")) || {};
 
@@ -270,21 +268,21 @@ function saveKO() {
   localStorage.setItem("KO", JSON.stringify(KO));
 }
 
-function setKO(key, winner) {
-  if (KO[key]) return;
-  KO[key] = winner;
-  saveKO();
-  renderLeaderboard(); // auto refresh
-}
-
-function getRoundWinners(prefix) {
+function getWinners(prefix) {
   return Object.keys(KO)
     .filter(k => k.startsWith(prefix))
     .sort()
     .map(k => KO[k]);
 }
 
-function renderRound(title, players, prefix) {
+function setKOWinner(key, winner) {
+  if (KO[key]) return;
+  KO[key] = winner;
+  saveKO();
+  renderLeaderboard();
+}
+
+function renderRound(title, prefix, players) {
   let html = `<h3>${title}</h3>`;
 
   for (let i = 0; i < players.length; i += 2) {
@@ -294,11 +292,13 @@ function renderRound(title, players, prefix) {
     const win = KO[key];
 
     html += `
-      <div class="${win ? 'completed-match' : ''}">
-        <p>${a} vs ${b} ${win ? "<span class='tick'>✔️</span>" : ""}</p>
-        <button onclick="setKO('${key}','${a}')" ${win ? 'disabled' : ''}>${a} Win</button>
-        <button onclick="setKO('${key}','${b}')" ${win ? 'disabled' : ''}>${b} Win</button>
-      </div>
+      <p class="${win ? 'completed-match' : ''}">
+        ${a} vs ${b}
+        ${win ? "<span class='tick'>✔️</span>" : ""}
+        <br>
+        <button onclick="setKOWinner('${key}','${a}')" ${win ? "disabled" : ""}>${a} Win</button>
+        <button onclick="setKOWinner('${key}','${b}')" ${win ? "disabled" : ""}>${b} Win</button>
+      </p>
     `;
   }
   return html;
@@ -308,48 +308,55 @@ function renderKnockout(top32) {
   const div = document.getElementById("knockout");
   if (!top32.length) return;
 
-  let html = "";
-  const p32 = top32.map(p => p.player);
+  let html = "<h3>Round of 32</h3>";
+  let r32 = [];
 
-  // ROUND OF 32
-  html += renderRound("Round of 32", p32, "R32");
-  const r32 = getRoundWinners("R32");
+  for (let i = 0; i < 16; i++) {
+    const a = top32[i].player;
+    const b = top32[31 - i].player;
+    const key = `R32-${i}`;
+    const win = KO[key];
 
-  // ROUND OF 16
+    if (win) r32.push(win);
+
+    html += `
+      <p class="${win ? 'completed-match' : ''}">
+        ${a} vs ${b}
+        ${win ? "<span class='tick'>✔️</span>" : ""}
+        <br>
+        <button onclick="setKOWinner('${key}','${a}')" ${win ? "disabled" : ""}>${a} Win</button>
+        <button onclick="setKOWinner('${key}','${b}')" ${win ? "disabled" : ""}>${b} Win</button>
+      </p>
+    `;
+  }
+
   if (r32.length === 16) {
-    html += renderRound("Round of 16", r32, "R16");
-  }
-  const r16 = getRoundWinners("R16");
+    html += renderRound("Round of 16", "R16", r32);
+    const r16 = getWinners("R16");
 
-  // QUARTERFINALS
-  if (r16.length === 8) {
-    html += renderRound("Quarterfinals", r16, "QF");
-  }
-  const qf = getRoundWinners("QF");
+    if (r16.length === 8) {
+      html += renderRound("Quarterfinals", "QF", r16);
+      const qf = getWinners("QF");
 
-  // SEMIFINALS
-  if (qf.length === 4) {
-    html += renderRound("Semifinals", qf, "SF");
-  }
-  const sf = getRoundWinners("SF");
+      if (qf.length === 4) {
+        html += renderRound("Semifinals", "SF", qf);
+        const sf = getWinners("SF");
 
-  // FINAL
-  if (sf.length === 2) {
-    html += renderRound("Final", sf, "FINAL");
-  }
+        if (sf.length === 2) {
+          html += renderRound("Final", "FINAL", sf);
 
-  // CHAMPION
-  if (KO["FINAL-0"]) {
-    html += `<h2>🏆 Champion: ${KO["FINAL-0"]} <span class="trophy">🏆</span></h2>`;
+          if (KO["FINAL-0"]) {
+            html += `<h2>🏆 Champion: ${KO["FINAL-0"]} <span class="trophy">🏆</span></h2>`;
+          }
+        }
+      }
+    }
   }
 
   div.innerHTML = html;
   saveKO();
 }
 
-      localStorage.setItem("knockoutData", JSON.stringify(knockoutData));
-      renderLeaderboard();
-    }
 
     /* SAVE LOAD */
     function saveData() {
